@@ -1,0 +1,18 @@
+{
+  "name": "sprout-ui",
+  "version": "1.0.0",
+  "description": "A small React-like UI library written from scratch in TypeScript",
+  "type": "module",
+  "main": "dist/src/sprout.js",
+  "types": "dist/src/sprout.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test dist/tests/",
+    "demo": "npm run build && npx --yes serve ."
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^4.7.0"
+  }
+}

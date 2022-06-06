@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>sprout demo</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 480px; margin: 3rem auto; }
+  li { display: flex; gap: .5rem; align-items: center; padding: .25rem 0; }
+  li.done span { text-decoration: line-through; color: #888; }
+  li span { flex: 1; cursor: pointer; }
+  form { display: flex; gap: .5rem; margin-bottom: 1rem; }
+  input { flex: 1; padding: .4rem; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+  import { h, render, useState, useEffect } from '../dist/src/sprout.js';
+
+  function TodoApp() {
+    const [todos, setTodos] = useState(() => JSON.parse(localStorage.getItem('todos') || '[]'));
+    const [text, setText] = useState('');
+    const [filter, setFilter] = useState('all');
+
+    useEffect(() => { localStorage.setItem('todos', JSON.stringify(todos)); }, [todos]);
+
+    const visible = todos.filter((t) => filter === 'all' || (filter === 'done') === t.done);
+    const add = (e) => {
+      e.preventDefault();
+      if (!text.trim()) return;
+      setTodos((all) => [...all, { id: Date.now(), text: text.trim(), done: false }]);
+      setText('');
+    };
+
+    return h('div', null,
+      h('h1', null, 'todos'),
+      h('form', { onSubmit: add },
+        h('input', { value: text, onInput: (e) => setText(e.target.value), placeholder: 'What needs doing?' }),
+        h('button', null, 'Add')),
+      h('p', null,
+        ['all', 'active', 'done'].map((f) =>
+          h('button', { key: f, onClick: () => setFilter(f), style: { fontWeight: filter === f ? 'bold' : 'normal', marginRight: '4px' } }, f))),
+      h('ul', null, visible.map((t) =>
+        h('li', { key: t.id, className: t.done ? 'done' : '' },
+          h('input', { type: 'checkbox', checked: t.done, onChange: () => setTodos((all) => all.map((x) => x.id === t.id ? { ...x, done: !x.done } : x)) }),
+          h('span', { onClick: () => setTodos((all) => all.map((x) => x.id === t.id ? { ...x, done: !x.done } : x)) }, t.text),
+          h('button', { onClick: () => setTodos((all) => all.filter((x) => x.id !== t.id)) }, 'x')))),
+      h('p', null, `${todos.filter((t) => !t.done).length} left`));
+  }
+
+  render(h(TodoApp, null), document.getElementById('app'));
+</script>
+</body>
+</html>
