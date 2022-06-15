@@ -1,16 +1,21 @@
 # sprout
 
-A small React-like UI library written from scratch in TypeScript: a virtual
-DOM, a diffing reconciler with keyed children, function components and hooks
-(`useState`, `useReducer`, `useEffect`, `useMemo`, `useCallback`, `useRef`),
-batched re-renders and fragments. About 450 lines, zero runtime dependencies.
+Uma biblioteca de UI estilo React, em TypeScript, com umas 450 linhas e zero dependências: virtual DOM, reconciliação com chaves, componentes de função, hooks (`useState`, `useReducer`, `useEffect`, `useMemo`, `useCallback`, `useRef`), re-render em lote e fragments.
 
-I built it to understand what React does under the hood: how a tree of plain
-objects is turned into DOM nodes, how a second render is reconciled against
-the first without rebuilding everything, and how hooks can work with nothing
-more than a per-component array and a global "currently rendering" pointer.
+E, pra provar que ela serve pra alguma coisa, uma **extensão do Chrome** feita com ela: a "Focus", uma página de nova aba com relógio, lista de tarefas, timer pomodoro e atalhos. Uso todo dia.
 
-## Example
+## A extensão
+
+```sh
+npm install
+npm run build:extension      # compila e monta a pasta extension/
+```
+
+Depois abre `chrome://extensions`, liga o modo desenvolvedor, "Carregar sem compactação" e aponta pra pasta `extension/`. Abre uma aba nova e pronto. Os dados ficam no `localStorage` da própria página, nada sai do seu computador.
+
+O componente inteiro está em `src/focus.ts` (é um arquivo só, dá pra ler em dez minutos). A lógica do pomodoro e das tarefas são reducers puros, testados sem navegador.
+
+## A biblioteca
 
 ```js
 import { h, render, useState, useEffect } from './dist/src/sprout.js';
@@ -20,48 +25,24 @@ function Counter({ step }) {
   useEffect(() => { document.title = `count: ${count}`; }, [count]);
   return h('button', { onClick: () => setCount((c) => c + step) }, `Clicked ${count} times`);
 }
-
 render(h(Counter, { step: 2 }), document.getElementById('app'));
 ```
 
-`h(type, props, ...children)` works as a JSX factory too (`jsxFactory: "h"`).
-Open `demo/index.html` after `npm run build` for a todo app that persists to
-`localStorage`.
+`h(type, props, ...children)` também serve de fábrica pra JSX (`jsxFactory: "h"`). Tem um todo app em `demo/index.html`.
 
-## How it works
+Como funciona, em ordem:
 
-- **Virtual DOM** (`h`): builds plain `{ type, props, key }` objects; strings
-  and numbers become text vnodes, arrays are flattened, `null`/booleans are
-  skipped.
-- **Mount / diff / unmount**: `render()` keeps the previous tree per container
-  and calls `diff()`. Same type means patch in place (attributes, event
-  listeners, style objects, `value`/`checked` properties); different type means
-  mount the new node and unmount the old one.
-- **Keyed reconciliation** (`diffChildren`): old children are matched by key
-  (or by position when unkeyed); unmatched nodes are removed first, then
-  matched nodes are moved with `insertBefore` only when they are out of order.
-- **Components and hooks**: each component vnode owns an *instance* holding a
-  hook array. While a component function runs, `currentInstance` points at it,
-  and each hook call reads the next slot. `useState` is `useReducer` with a
-  trivial reducer; updates are queued on the hook and applied on the next
-  render.
-- **Batching**: `setState` marks the instance dirty and schedules one flush
-  with `queueMicrotask`, so many updates in the same tick cause one re-render.
-  `flushSync()` forces it (used by the tests).
-- **Effects**: run after the component's DOM has been committed; cleanups run
-  before the effect re-runs and on unmount. `setState` after unmount is a no-op.
+- `h` monta objetos `{ type, props, key }`; strings viram nós de texto, arrays são achatados, `null`/booleanos somem.
+- `render()` guarda a árvore anterior por container e chama `diff()`: mesmo tipo = patch no lugar (atributos, listeners, `style`, `value`/`checked`); tipo diferente = monta o novo, desmonta o velho.
+- Filhos com `key` são casados por chave; os que sobraram são removidos primeiro e os demais só se movem (`insertBefore`) quando estão fora de ordem.
+- Cada componente tem uma *instância* com um array de hooks. Enquanto a função roda, `currentInstance` aponta pra ela e cada hook lê o próximo slot. Foi aqui que caiu a ficha de por que hooks não podem ficar dentro de `if`.
+- `setState` marca a instância como suja e agenda um flush com `queueMicrotask`, então dez updates no mesmo tick viram um render. `flushSync()` força.
+- Efeitos rodam depois do commit; cleanups rodam antes do efeito rodar de novo e no unmount.
 
-## Tests
+## Testes
 
-The test-suite runs in Node against a tiny purpose-built DOM
-(`src/testdom.ts`) that implements just the parts of the DOM the library uses,
-including event bubbling and an `innerHTML` serializer.
+`npm test` roda em Node contra um DOM de mentira (`src/testdom.ts`) que implementa só o que a biblioteca usa, com bubbling de eventos e um serializador de `innerHTML`. Cobre a biblioteca e a página Focus (renderiza, adiciona tarefa, salva, inicia o pomodoro). O CI ainda confere que a build commitada em `extension/lib` está atualizada.
 
-```sh
-npm install
-npm test
-```
+---
 
-## License
-
-MIT
+**EN:** a React-like UI library in ~450 lines of TypeScript (virtual DOM, keyed reconciliation, function components, hooks, batched updates, fragments) and a Chrome new-tab extension built on it ("Focus": clock, todos, pomodoro, quick links). `npm run build:extension` prepares `extension/` for loading unpacked. Tests run in Node against a purpose-built fake DOM. MIT.
